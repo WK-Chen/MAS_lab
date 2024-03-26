@@ -1,0 +1,36 @@
+<utility_space type="any" number_of_issues="0">
+<objective index="1" etype="objective" type="objective" description="" name="any">
+<issue index="1" etype="discrete" type="discrete" vtype="discrete" name="i1">
+    <item index="1" value="v1" evaluation="0.0" />
+    <item index="2" value="v2" evaluation="1.0" />
+</issue>
+<issue index="2" etype="discrete" type="discrete" vtype="discrete" name="i2">
+    <item index="1" value="v1" evaluation="0.08634297200757685" />
+    <item index="2" value="v2" evaluation="0.42868200254668626" />
+    <item index="3" value="v3" evaluation="1.0" />
+    <item index="4" value="v4" evaluation="0.5831906251023542" />
+    <item index="5" value="v5" evaluation="0.0" />
+</issue>
+<issue index="3" etype="discrete" type="discrete" vtype="discrete" name="i3">
+    <item index="1" value="v1" evaluation="1.0" />
+    <item index="2" value="v2" evaluation="0.4240081376481182" />
+    <item index="3" value="v3" evaluation="0.1930393625424876" />
+    <item index="4" value="v4" evaluation="0.0" />
+</issue>
+<issue index="4" etype="discrete" type="discrete" vtype="discrete" name="i4">
+    <item index="1" value="v1" evaluation="1.0" />
+    <item index="2" value="v2" evaluation="0.0" />
+    <item index="3" value="v3" evaluation="1.0" />
+    <item index="4" value="v4" evaluation="0.5" />
+</issue>
+<weight index="1" value="0.01621590153731152">
+</weight>
+<weight index="2" value="0.5694072472562208">
+</weight>
+<weight index="3" value="0.016764235021048637">
+</weight>
+<weight index="4" value="0.397612616185419">
+</weight>
+</objective>
+<reservation value="0.36813672441010387" />
+</utility_space>

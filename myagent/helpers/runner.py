@@ -53,7 +53,7 @@ def run_a_tournament(
         else None
     )
     if small:
-        anl2024_tournament(
+        result = anl2024_tournament(
             competitors=tuple([TestedNegotiator, Conceder]),
             n_scenarios=1,
             n_outcomes=n_outcomes,
@@ -62,9 +62,9 @@ def run_a_tournament(
             verbosity=2 if debug else 1,
             plot_fraction=0,
             name=name,
-        ).final_scores
+        )
     else:
-        anl2024_tournament(
+        result = anl2024_tournament(
             competitors=tuple([TestedNegotiator] + list(DEFAULT_AN2024_COMPETITORS)),
             n_scenarios=n_scenarios,
             n_outcomes=n_outcomes,
@@ -73,7 +73,8 @@ def run_a_tournament(
             verbosity=2 if debug else 1,
             plot_fraction=0,
             name=name,
-        ).final_scores
+        )
     print(f"Finished in {humanize_time(time.perf_counter() - start)}")
     if name is not None:
         print(f"You can see all logs at {DEFAULT_TOURNAMENT_PATH / name}")
+    return result.final_scores

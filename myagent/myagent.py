@@ -22,25 +22,29 @@ import numpy as np
 from anl.anl2024 import anl2024_tournament
 from anl.anl2024.negotiators import Boulware, Conceder, RVFitter
 import matplotlib.pyplot as plt
-
+from functools import partial
 
 logging.basicConfig(level=logging.INFO)
 
 class MyNegotiator(SAONegotiator):
-    def __init__(self, *args, mode='test', **kwargs):
+    def __init__(self, *args, **kwargs):
+        self.mode = kwargs.pop("mode")
+        self.model_path = kwargs.pop("model_path")
+        if isinstance(self.model_path, str):
+            if not Path(self.model_path).exists():
+                self.SACagent = SACContinuous()
+            else:
+                self.SACagent = torch.load(self.model_path)
+        elif isinstance(self.model_path, SACContinuous):
+            self.SACagent = self.model_path
+        else:
+            assert False
+
         super().__init__(*args, **kwargs)
 
-        self.mode = mode
-        if self.mode == "test":
-            self.SACagent = torch.load('best_model.pth')
-        elif Path('model.pth').exists():
-            self.SACagent = torch.load('model.pth')
-        else:
-            self.SACagent = SACContinuous()
-
-
         if self.mode == 'test':
-            self.rv_predict = joblib.load('regressor_model.pkl')
+            self.rv_predict = None
+            # self.rv_predict = joblib.load('regressor_model.pkl')
         else:
             self.rv_predict = None
 
@@ -158,7 +162,7 @@ class MyNegotiator(SAONegotiator):
     def get_state_space(self, state):
         if self.mode == 'test':
             return (
-                state.relative_time,
+                0 if state.relative_time < 0.6 else 1,
                 # self.nash_point[0],
                 # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],
@@ -174,7 +178,7 @@ class MyNegotiator(SAONegotiator):
             )
         else:
             return (
-                state.relative_time,
+                0 if state.relative_time < 0.6 else 1,
                 # self.nash_point[0],
                 # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],
@@ -241,8 +245,7 @@ class MyNegotiator(SAONegotiator):
 # if you want to do a very small test, use the parameter small=True here. Otherwise, you can use the default parameters.
 if __name__ == "__main__":
     from helpers.runner import run_a_tournament
-
-    run_a_tournament(MyNegotiator,
+    run_a_tournament(partial(MyNegotiator, mode="test"),
                      n_repetitions=1,
                      n_outcomes=1000,
                      n_scenarios=1,

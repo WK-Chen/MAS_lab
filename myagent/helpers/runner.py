@@ -42,7 +42,8 @@ def run_a_tournament(
         DEFAULT_TOURNAMENT_PATH,
         anl2024_tournament,
     )
-    from anl.anl2024.negotiators import Conceder
+    from anl.anl2024.negotiators import Conceder, NaiveTitForTat
+    from anl.anl2024.negotiators.builtins.wrappers import StochasticLinear, StochasticConceder, StochasticBoulware
     from negmas.helpers import humanize_time, unique_name
     from rich import print
 
@@ -54,7 +55,7 @@ def run_a_tournament(
     )
     if small:
         result = anl2024_tournament(
-            competitors=tuple([TestedNegotiator, Conceder]),
+            competitors=tuple([TestedNegotiator, StochasticBoulware]),
             n_scenarios=1,
             n_outcomes=n_outcomes,
             n_repetitions=1,

@@ -249,7 +249,7 @@ if __name__ == "__main__":
                      n_repetitions=1,
                      n_outcomes=1000,
                      n_scenarios=3,
-                     small=False, debug=True,nologs=True)
+                     small=True, debug=True,nologs=True)
     # results = anl2024_tournament(
     #     n_scenarios=1, n_repetitions=1, nologs=True, njobs=-1, verbosity=2,
     #     competitors=[MyNegotiator, Boulware]

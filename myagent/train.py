@@ -5,6 +5,7 @@ from sac import SACContinuous, ReplayBuffer
 from data_gen import generate_scenario, DEFAULT2024SETTINGS
 from negmas.sao.mechanism import SAOMechanism
 from anl.anl2024.negotiators import Boulware, Conceder, RVFitter, NashSeeker, MiCRO, Linear, NaiveTitForTat
+from anl.anl2024.negotiators.builtins.wrappers import StochasticLinear, StochasticConceder, StochasticBoulware
 from myagent import MyNegotiator
 from tqdm import tqdm, trange
 import torch
@@ -19,18 +20,18 @@ logging.basicConfig(level=logging.INFO)
 
 TRAIN_COMPETITORS = (
     MyNegotiator,
-    MyNegotiator,
     RVFitter,
     NashSeeker,
     MiCRO,
     Boulware,
     Conceder,
     Linear,
-    # NaiveTitForTat,
-    # StochasticLinear,
-    # StochasticConceder,
-    # StochasticBoulware
+    NaiveTitForTat,
+    StochasticLinear,
+    StochasticConceder,
+    StochasticBoulware,
 )
+
 
 def inital_session(opponent, SACagent):
     scenario, private_info = generate_scenario(
@@ -80,15 +81,17 @@ def reformat_history(session, pos):
         # assert len(his_o_o) == len(his_s_o) == len(his_s_s)
 
         his = neg.state_history
+        if len(his) == 0:
+            return None, None, None, None, True
         time_step = [state[0] for state in his] + [his[-1][0]]
         # nash = his[0][1:3]
         rvs = his[0][-2:]
         for i in range(len(time_step)):
             # state_history1.append([time_step[i]] + list(nash + (his_o_o[i], his_s_o[i], his_s_s[i]) + rvs))
-            state_history1.append([time_step[i]] + list((his_o_o[i], his_o_o[i+1], his_o_o[i+2],
-                                                         his_s_s[i], his_s_s[i+1], his_s_s[i+2],) + rvs))
+            state_history1.append([time_step[i]] + list((his_o_o[i], his_o_o[i + 1], his_o_o[i + 2],
+                                                         his_s_s[i], his_s_s[i + 1], his_s_s[i + 2],) + rvs))
         for i in range(3, len(his_s_s)):
-            action_history1.append([his_s_s[i]-his_s_s[i-1]])
+            action_history1.append([his_s_s[i] - his_s_s[i - 1]])
         # action_history1 = session.get_negotiator(session.negotiator_ids[0]).action_history
 
     if 1 in pos:
@@ -103,18 +106,22 @@ def reformat_history(session, pos):
         # assert len(his_o_o) == len(his_s_o) == len(his_s_s)
 
         his = neg.state_history
+        if len(his) == 0:
+            return None, None, None, None, True
+
         time_step = [state[0] for state in his] + [his[-1][0]]
         # nash = his[0][1:3]
         rvs = his[0][-2:]
         for i in range(len(time_step)):
             # state_history2.append([time_step[i]] + list(nash + (his_o_o[i], his_s_o[i], his_s_s[i]) + rvs))
-            state_history2.append([time_step[i]] + list((his_o_o[i], his_o_o[i+1], his_o_o[i+2],
-                                                         his_s_s[i], his_s_s[i+1], his_s_s[i+2],) + rvs))
+            state_history2.append([time_step[i]] + list((his_o_o[i], his_o_o[i + 1], his_o_o[i + 2],
+                                                         his_s_s[i], his_s_s[i + 1], his_s_s[i + 2],) + rvs))
         for i in range(3, len(his_s_s)):
-            action_history2.append([his_s_s[i] - his_s_s[i-1]])
+            action_history2.append([his_s_s[i] - his_s_s[i - 1]])
         # action_history2 = session.get_negotiator(session.negotiator_ids[1]).action_history
 
-    return state_history1, state_history2, action_history1, action_history2
+    return state_history1, state_history2, action_history1, action_history2, False
+
 
 def simple_cal_reward(idx, neg, session, state_history, action_history):
     if idx == len(action_history) - 1:
@@ -129,6 +136,7 @@ def simple_cal_reward(idx, neg, session, state_history, action_history):
         done = 0
 
     return reward, done
+
 
 def cal_reward(episode, idx, neg, session, state_history, action_history):
     if idx == len(action_history) - 1:
@@ -163,12 +171,14 @@ def cal_reward(episode, idx, neg, session, state_history, action_history):
 
     return reward, done
 
+
 def get_random(value):
     _value = value
     value = value + random.uniform(-5e-3, 5e-3)
     if value < 0.0 or value > 1.0:
         value = _value
     return value
+
 
 def random_state(state):
     return (state[0],
@@ -182,12 +192,13 @@ def random_state(state):
             get_random(state[8]),
             )
 
+
 def random_buffer(buffer):
     return (random_state(buffer[0]), buffer[1], buffer[2], random_state(buffer[3]), buffer[4])
 
 
-
-def get_reward(episode, session, Buffer, state_history1, state_history2, action_history1, action_history2, distance, pos):
+def get_reward(episode, session, Buffer, state_history1, state_history2, action_history1, action_history2, distance,
+               pos):
     rewards = []
     if 0 in pos:
         neg = session.get_negotiator(session.negotiator_ids[0])
@@ -262,11 +273,8 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
 
     for episode in trange(num_episodes):
         if episode % 10 == 0:
-            if episode == 0:
-                new_opponent = random.choice(TRAIN_COMPETITORS[1:])
-            else:
-                new_opponent = random.choice(TRAIN_COMPETITORS)
-            # logging.warning(f"CHANGING opponent. New: {new_opponent.__name__}")
+            new_opponent = random.choice(TRAIN_COMPETITORS)
+            logging.warning(f"CHANGING opponent. New: {new_opponent.__name__}")
 
         session, pos = inital_session(new_opponent, SACagent)
         session.run()
@@ -280,20 +288,23 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
         #                 f"{neg2.ufun(session.state.agreement):.2f}) ||"
         #                 f"NASH:{distance:.2f}")
 
-        if session.state.agreement is None:
-            distances_fail.append(distance)
-        else:
-            distances.append(distance)
-
-        state_history1, state_history2, action_history1, action_history2 = reformat_history(session, pos)
+        state_history1, state_history2, action_history1, action_history2, error = reformat_history(session, pos)
+        if error:
+            logging.warning("An ERROR occur!!!")
+            continue
 
         reward = get_reward(episode, session, Buffer, state_history1, state_history2, action_history1, action_history2,
                             distance, pos)
         rewards.append(reward)
 
+        if session.state.agreement is None:
+            distances_fail.append(distance)
+        else:
+            distances.append(distance)
+
         if Buffer.size() > minimal_size:
             b_s, b_a, b_r, b_ns, b_d = Buffer.sample(batch_size)
-            logging.warning(f"zero rate: {b_r.count(0) / len(b_r)}")
+            # logging.warning(f"zero rate: {b_r.count(0) / len(b_r)}")
             transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
             SACagent.update(transition_dict)
 
@@ -320,7 +331,6 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
             else:
                 logging.warning(f"Fail Distance to Nash: No")
                 distances_fail = []
-
 
             session.plot(ylimits=(0.0, 1.01), show_reserved=False, mark_max_welfare_points=False)
             plt.savefig(f'figs/episode_{episode}_pos_{pos[0]}.png')

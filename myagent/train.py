@@ -133,7 +133,13 @@ def simple_cal_reward(idx, neg, session, state_history, action_history):
 def cal_reward(episode, idx, neg, session, state_history, action_history):
     if idx == len(action_history) - 1:
         if session.agreement is None:
-            reward = session.get_negotiator(session.negotiator_ids[0]).reserved_value
+            if neg.ufun(session.agreement) < (neg.nash_points()[0] - (0.2 / (episode // 100 + 1))):
+                if random.random() < 0.5:
+                    reward = neg.reserved_value
+                else:
+                    reward = -10
+            else:
+                reward = neg.ufun(session.agreement)
             # if neg.ufun(session.agreement) < state_history[idx][1] - 0.2:
             #     reward = -10
             # else:
@@ -221,7 +227,8 @@ def get_reward(episode, session, Buffer, state_history1, state_history2, action_
                 Buffer.add(buffer)
                 rewards.append(reward)
             else:
-                if reward != 0 or (reward == 0 and random.random() < 0.1 / (episode // 100 + 1)):
+                if reward != 0 or (reward == 0 and random.random() < 0.1 / (episode // 100 + 1)
+                                   and state_history2[idx][0] >= 0.9):
                     Buffer.add(buffer)
                     rewards.append(reward)
     return sum(rewards) / len(rewards)
@@ -255,6 +262,7 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
     record_rw = []
     rewards = []
     distances = []
+    distances_fail = []
     best_reward = 0
     best_win = -1.0
     new_opponent = random.choice(TRAIN_COMPETITORS)
@@ -279,7 +287,10 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
         #                 f"{neg2.ufun(session.state.agreement):.2f}) ||"
         #                 f"NASH:{distance:.2f}")
 
-        distances.append(distance)
+        if session.state.agreement is None:
+            distances_fail.append(distance)
+        else:
+            distances.append(distance)
 
         state_history1, state_history2, action_history1, action_history2 = reformat_history(session, pos)
 
@@ -290,7 +301,7 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
         if Buffer.size() > minimal_size:
             for i in range(3):
                 b_s, b_a, b_r, b_ns, b_d = Buffer.sample(batch_size)
-                logging.warning(f"zero rate: {b_r.count(0) / len(b_r)}")
+                # logging.warning(f"zero rate: {b_r.count(0) / len(b_r)}")
                 transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
                 SACagent.update(transition_dict)
 
@@ -302,9 +313,20 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
                 best_reward = _rw
             rewards = []
 
-            _dis = sum(distances) / len(distances)
-            logging.warning(f"Distance to Nash: {_dis}")
-            distances = []
+            if distances:
+                _dis = sum(distances) / len(distances)
+                logging.warning(f"Success Distance to Nash: {_dis}")
+                distances = []
+            else:
+                logging.warning(f"Success Distance to Nash: No")
+                distances = []
+            if distances_fail:
+                _dis = sum(distances_fail) / len(distances_fail)
+                logging.warning(f"Fail Distance to Nash: {_dis}")
+                distances_fail = []
+            else:
+                logging.warning(f"Fail Distance to Nash: No")
+                distances_fail = []
 
             session.plot(ylimits=(0.0, 1.01), show_reserved=False, mark_max_welfare_points=False)
             plt.savefig(f'figs/episode_{episode}_pos_{pos[0]}.png')

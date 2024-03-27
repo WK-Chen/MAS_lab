@@ -162,7 +162,7 @@ class MyNegotiator(SAONegotiator):
     def get_state_space(self, state):
         if self.mode == 'test':
             return (
-                0 if state.relative_time < 0.6 else 1,
+                state.relative_time,
                 # self.nash_point[0],
                 # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],
@@ -178,7 +178,7 @@ class MyNegotiator(SAONegotiator):
             )
         else:
             return (
-                0 if state.relative_time < 0.6 else 1,
+                state.relative_time,
                 # self.nash_point[0],
                 # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],
@@ -245,10 +245,10 @@ class MyNegotiator(SAONegotiator):
 # if you want to do a very small test, use the parameter small=True here. Otherwise, you can use the default parameters.
 if __name__ == "__main__":
     from helpers.runner import run_a_tournament
-    run_a_tournament(partial(MyNegotiator, mode="test", model_path="best_model.pth"),
+    run_a_tournament(partial(MyNegotiator, mode="test", model_path="model.pth"),
                      n_repetitions=1,
                      n_outcomes=1000,
-                     n_scenarios=1,
+                     n_scenarios=3,
                      small=False, debug=True,nologs=True)
     # results = anl2024_tournament(
     #     n_scenarios=1, n_repetitions=1, nologs=True, njobs=-1, verbosity=2,

@@ -162,7 +162,7 @@ class MyNegotiator(SAONegotiator):
     def get_state_space(self, state):
         if self.mode == 'test':
             return (
-                state.relative_time,
+                0 if state.relative_time <= 0.75 else 1,
                 # self.nash_point[0],
                 # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],
@@ -178,7 +178,7 @@ class MyNegotiator(SAONegotiator):
             )
         else:
             return (
-                state.relative_time,
+                0 if state.relative_time <= 0.75 else 1,
                 # self.nash_point[0],
                 # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],

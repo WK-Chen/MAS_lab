@@ -153,19 +153,12 @@ def cal_reward(episode, idx, neg, session, state_history, action_history):
         done = 1
     else:
         reward = 0
-        if ((state_history[idx][5] + action_history[idx][0]) < neg.nash_points()[0] - (0.2 / (episode // 100 + 1))
-                and action_history[idx][0] < 0):
-            reward -= 1
-        # if state_history[idx][0] > 0.8:
-        #     reward = - math.exp(state_history[idx][0] - 0.8)
-        # else:
-        #     reward = 0
-        # if (state_history[idx][5] + action_history[idx][0]) < state_history[idx][1] - 0.1:
-        #     if action_history[idx][0] < 0:
-        #         reward += math.exp(2 * (state_history[idx][1] - (state_history[idx][5] + action_history[idx][0])))
-        # else:
-        #     if action_history[idx][0] > 0:
-        #         reward += 0.2
+        # if ((state_history[idx][5] + action_history[idx][0]) < neg.nash_points()[0] - (0.2 / (episode // 100 + 1))
+        #         and action_history[idx][0] < 0):
+        #     if state_history[idx][0] == 0 and random.random() < 0.5:
+        #         reward -= 1
+        #     if state_history[idx][0] == 1 and random.random() < 0.33:
+        #         reward -= 1
         done = 0
 
     return reward, done
@@ -299,20 +292,20 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
         rewards.append(reward)
 
         if Buffer.size() > minimal_size:
-            for i in range(3):
-                b_s, b_a, b_r, b_ns, b_d = Buffer.sample(batch_size)
-                # logging.warning(f"zero rate: {b_r.count(0) / len(b_r)}")
-                transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
-                SACagent.update(transition_dict)
+            b_s, b_a, b_r, b_ns, b_d = Buffer.sample(batch_size)
+            logging.warning(f"zero rate: {b_r.count(0) / len(b_r)}")
+            transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
+            SACagent.update(transition_dict)
 
         if episode % update_interval == 0:
             _rw = sum(rewards) / len(rewards)
             record_rw.append(_rw)
-            logging.warning(f"Reward: {_rw}")
+            logging.warning(f"\nReward: {_rw}")
             if _rw > best_reward:
                 best_reward = _rw
             rewards = []
 
+            logging.warning(f"Success % = {len(distances) / (len(distances) + len(distances_fail))}")
             if distances:
                 _dis = sum(distances) / len(distances)
                 logging.warning(f"Success Distance to Nash: {_dis}")
@@ -327,6 +320,7 @@ def train(SACagent, Buffer, num_episodes, minimal_size, batch_size, update_inter
             else:
                 logging.warning(f"Fail Distance to Nash: No")
                 distances_fail = []
+
 
             session.plot(ylimits=(0.0, 1.01), show_reserved=False, mark_max_welfare_points=False)
             plt.savefig(f'figs/episode_{episode}_pos_{pos[0]}.png')
@@ -369,12 +363,12 @@ if __name__ == "__main__":
     agent = SACContinuous()
     Buffer = ReplayBuffer(capacity=10000)
 
-    num_episodes = 1000
+    num_episodes = 10000
     minimal_size = 1000
     batch_size = 256
     update_interval = 10
-    test_interval = 20
-    save_interval = 20
+    test_interval = 100
+    save_interval = 100
 
     train(agent, Buffer, num_episodes, minimal_size, batch_size, update_interval, test_interval, save_interval)
 

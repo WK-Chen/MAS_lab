@@ -13,17 +13,13 @@ import negmas
 from negmas.outcomes import Outcome
 from negmas.sao import ResponseType, SAONegotiator, SAOResponse, SAOState
 from sac import SACContinuous
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.metrics import mean_squared_error
 import joblib
 from pathlib import Path
 import torch
 import numpy as np
-from anl.anl2024 import anl2024_tournament
-from anl.anl2024.negotiators import Boulware, Conceder, RVFitter
-import matplotlib.pyplot as plt
 from functools import partial
-
+import pickle
+from reserved_value_predict import prepare_data, train
 logging.basicConfig(level=logging.INFO)
 
 class MyNegotiator(SAONegotiator):
@@ -39,12 +35,11 @@ class MyNegotiator(SAONegotiator):
             self.SACagent = self.model_path
         else:
             assert False
-
         super().__init__(*args, **kwargs)
 
         if self.mode == 'test':
-            self.rv_predict = None
-            # self.rv_predict = joblib.load('regressor_model.pkl')
+            X_train, _, Y_train, _ = prepare_data("./state_records.pkl")
+            self.rv_predict = train(X_train, Y_train)
         else:
             self.rv_predict = None
 
@@ -163,28 +158,21 @@ class MyNegotiator(SAONegotiator):
         if self.mode == 'test':
             return (
                 0 if state.relative_time <= 0.75 else 1,
-                # self.nash_point[0],
-                # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],
                 self.history_utility_op_offer_op[-2],
                 self.history_utility_op_offer_op[-1],
-                # self.history_utility_self_offer_op[-1],
                 self.history_utility_self_offer_self[-3],
                 self.history_utility_self_offer_self[-2],
                 self.history_utility_self_offer_self[-1],
                 self.reserved_value,
-                # self.partner_reserved_value,
-                self.opponent_ufun.reserved_value
+                self.partner_reserved_value
             )
         else:
             return (
                 0 if state.relative_time <= 0.75 else 1,
-                # self.nash_point[0],
-                # self.nash_point[1],
                 self.history_utility_op_offer_op[-3],
                 self.history_utility_op_offer_op[-2],
                 self.history_utility_op_offer_op[-1],
-                # self.history_utility_self_offer_op[-1],
                 self.history_utility_self_offer_self[-3],
                 self.history_utility_self_offer_self[-2],
                 self.history_utility_self_offer_self[-1],
@@ -212,7 +200,8 @@ class MyNegotiator(SAONegotiator):
                 value_bid_dict[v].append(k)
             else:
                 value_bid_dict[v] = [k]
-        next_value = self.history_utility_self_offer_self[-1] + action
+        # next_value = self.history_utility_self_offer_self[-1] + action
+        next_value = action
         closest_value = self.find_closest_value(value_bid_dict, next_value)
         return value_bid_dict[closest_value]
 
@@ -226,46 +215,30 @@ class MyNegotiator(SAONegotiator):
 
     def update_partner_reserved_value(self, state: SAOState) -> None:
         assert self.ufun and self.opponent_ufun
-        if self.mode == "trn":
-            return 0.0
+        if self.mode != "test":
+            return
         else:
-            return 0.0
-        info = (
-            state.relative_time,
-            self.nash_point[0],
-            self.nash_point[1],
-            self.history_utility_op_offer_op[-1],
-            self.history_utility_self_offer_op[-1],
-            self.history_utility_self_offer_self[-1],
-            self.reserved_value
-        )
-        self.partner_reserved_value = self.rv_predict.predict(np.array(info).reshape(1, -1))[0]
+            info = (
+                0 if state.relative_time <= 0.75 else 1,
+                self.history_utility_op_offer_op[-3],
+                self.history_utility_op_offer_op[-2],
+                self.history_utility_op_offer_op[-1],
+                self.history_utility_self_offer_self[-3],
+                self.history_utility_self_offer_self[-2],
+                self.history_utility_self_offer_self[-1],
+                self.reserved_value,
+            )
+            # x = self.rv_predict.predict(np.array(info).reshape(1, -1))[0]
+            # print(x[0])
+            # assert False
+            self.partner_reserved_value = self.rv_predict.predict(np.array(info).reshape(1, -1))[0]
 
 
 # if you want to do a very small test, use the parameter small=True here. Otherwise, you can use the default parameters.
 if __name__ == "__main__":
     from helpers.runner import run_a_tournament
-    run_a_tournament(partial(MyNegotiator, mode="test", model_path="model.pth"),
+    run_a_tournament(partial(MyNegotiator, mode="test", model_path="model_9200.pth"),
                      n_repetitions=1,
                      n_outcomes=1000,
-                     n_scenarios=3,
+                     n_scenarios=2,
                      small=True, debug=True,nologs=True)
-    # results = anl2024_tournament(
-    #     n_scenarios=1, n_repetitions=1, nologs=True, njobs=-1, verbosity=2,
-    #     competitors=[MyNegotiator, Boulware]
-    # )
-    #
-    # fig, ax = plt.subplots(figsize=(8, 6))
-    # df = results.scores
-    # for label, data in df.groupby('strategy'):
-    #     data.advantage.plot(kind="kde", ax=ax, label=label)
-    # plt.ylabel("advantage")
-    # plt.legend()
-    # plt.show()
-    #
-    # fig, axs = plt.subplots(1, 3, figsize=(16, 4))
-    # for i, col in enumerate(["advantage", "welfare", "nash_optimality"]):
-    #     results.scores.groupby("strategy")[col].mean().sort_index().plot(kind="bar", ax=axs[i])
-    #     axs[i].set_ylabel(col)
-    #
-    # plt.show()

@@ -1,12 +1,7 @@
-import gym
 import random
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from torch.distributions import Normal
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm, trange
 import collections
 import numpy as np
 
@@ -51,12 +46,9 @@ class PolicyNetContinuous(torch.nn.Module):
         log_prob = dist.log_prob(normal_sample)
         # 将动作约数在[-1,1]
         action = torch.tanh(normal_sample)
-        # 计算tanh_normal分布的对数概率密度
-        # 限制动作范围会影响到动作的概率密度函数。这是因为 tanh 函数的导数在边界点上接近于零，这可能导致在这些点上计算的概率密度非常小，甚至接近于零。这会导致梯度消失，从而影响模型的训练效果。
-        # 为了解决这个问题，可以使用公式 log(1 - tanh^2(x) + ε) 来重新计算对数概率密度，其中 ε 是一个较小的常数（在这里是 1e-7），用于避免取对数时的除零错误。这样可以保持对数概率密度的合理值，并避免梯度消失的问题。因此，在该代码中，使用该公式重新计算 log_prob。
         log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
         # 得到动作的范围
-        action = action * self.action_bound
+        action = action * self.action_bound + 0.5
         return action, log_prob
 
 
@@ -78,7 +70,7 @@ class SACContinuous:
     def __init__(self, state_dim=9,
                  hidden_dim=256,
                  action_dim=1,
-                 action_bound=0.1,
+                 action_bound=0.5,
                  actor_lr=3e-4,
                  critic_lr=3e-3,
                  alpha_lr=3e-4,
@@ -164,9 +156,3 @@ class SACContinuous:
         # 软更新目标网络
         self.soft_update(self.critic_1, self.target_critic_1)
         self.soft_update(self.critic_2, self.target_critic_2)
-
-    def get_action(self, state, early=False):
-        action = self.policy_net.sample(state)
-        if early:
-            action = action * random.random(0.1, 0.9)
-        return action

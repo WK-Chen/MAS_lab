@@ -8,7 +8,7 @@ the authors and the ANAC 2024 ANL competition.
 """
 import logging
 import random
-
+import math
 import negmas
 from negmas.outcomes import Outcome
 from negmas.sao import ResponseType, SAONegotiator, SAOResponse, SAOState
@@ -157,7 +157,7 @@ class MyNegotiator(SAONegotiator):
     def get_state_space(self, state):
         if self.mode == 'test':
             return (
-                0 if state.relative_time <= 0.75 else 1,
+                math.floor(state.relative_time * 10) / 10,
                 self.history_utility_op_offer_op[-3],
                 self.history_utility_op_offer_op[-2],
                 self.history_utility_op_offer_op[-1],
@@ -169,7 +169,7 @@ class MyNegotiator(SAONegotiator):
             )
         else:
             return (
-                0 if state.relative_time <= 0.75 else 1,
+                math.floor(state.relative_time * 10) / 10,
                 self.history_utility_op_offer_op[-3],
                 self.history_utility_op_offer_op[-2],
                 self.history_utility_op_offer_op[-1],
@@ -200,8 +200,7 @@ class MyNegotiator(SAONegotiator):
                 value_bid_dict[v].append(k)
             else:
                 value_bid_dict[v] = [k]
-        # next_value = self.history_utility_self_offer_self[-1] + action
-        next_value = action
+        next_value = self.history_utility_self_offer_self[-1] + action
         closest_value = self.find_closest_value(value_bid_dict, next_value)
         return value_bid_dict[closest_value]
 
@@ -219,7 +218,7 @@ class MyNegotiator(SAONegotiator):
             return
         else:
             info = (
-                0 if state.relative_time <= 0.75 else 1,
+                math.floor(state.relative_time * 10) / 10,
                 self.history_utility_op_offer_op[-3],
                 self.history_utility_op_offer_op[-2],
                 self.history_utility_op_offer_op[-1],

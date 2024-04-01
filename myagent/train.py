@@ -82,8 +82,7 @@ def reformat_history(session, neg):
         state_history.append([time_step[i]] + list((his_o_o[i], his_o_o[i + 1], his_o_o[i + 2],
                                                     his_s_s[i], his_s_s[i + 1], his_s_s[i + 2],) + rvs))
     for i in range(3, len(his_s_s)):
-        # action_history.append([his_s_s[i] - his_s_s[i - 1]])
-        action_history.append([his_s_s[i]])
+        action_history.append([his_s_s[i] - his_s_s[i - 1]])
 
     return state_history, action_history, False
 
@@ -105,21 +104,26 @@ def simple_cal_reward(idx, neg, session, state_history, action_history):
 
 def cal_reward(episode, idx, neg, session, state_history, action_history):
     if idx == len(action_history) - 1:
-        if session.agreement is None:
-            # if neg.ufun(session.agreement) < neg.nash_points()[0]:
-            #     if random.random() < 0.1:
-            #         reward = neg.reserved_value
-            #     else:
-            #         reward = -10
-            # else:
-            #     reward = neg.reserved_value
-            # reward = neg.reserved_value
+        # if session.agreement is None:
+        #     if neg.ufun(session.agreement) < neg.nash_points()[0]:
+        #         if random.random() < 0.1:
+        #             reward = neg.reserved_value
+        #         else:
+        #             reward = -10
+        #     else:
+        #         reward = neg.reserved_value
+        #     reward = neg.reserved_value
+        #     reward = -1
+        # else:
+        #     reward = neg.ufun(session.agreement)
+        #     reward = (neg.ufun(session.agreement) - neg.reserved_value / neg.ufun.max() - neg.reserved_value)
+        #     if neg.ufun(session.agreement) >= neg.nash_points()[0]:
+        #         reward += 10
+        upper = max(2 - 0.02 * (episode // 1000), 0.02)
+        if neg.ufun(session.agreement) < neg.nash_points()[0] - random.uniform(0.0, upper):
             reward = -1
         else:
-            # reward = neg.ufun(session.agreement)
-            # if neg.ufun(session.agreement) >= neg.nash_points()[0]:
-            #     reward += 100
-            reward = neg.ufun(session.agreement) ** 2 * 100 / neg.opponent_ufun(session.agreement)
+            reward = neg.ufun(session.agreement)
         done = 1
     else:
         reward = 0
@@ -183,7 +187,7 @@ def get_reward(episode, session, neg, Buffer, state_history, action_history):
             rewards.append(reward)
         else:
             # if reward != 0 or (reward == 0 and random.random() < 0.1 / (episode // 100 + 1)):
-            if random.random() < 1 / (episode // 100 + 1):
+            if random.random() < 0.01:
                 Buffer.add(buffer)
                 rewards.append(reward)
     return rewards
@@ -261,7 +265,7 @@ def train(SACagent, Buffer, start_episodes, num_episodes, minimal_size, batch_si
             SACagent.update(transition_dict)
 
         if episode % update_interval == 0:
-            _rw = sum(rewards) / len(rewards)
+            _rw = sum(rewards)
             logging.warning(f"Reward: {_rw:.3f}")
             rewards = []
             record_rw.append(_rw)

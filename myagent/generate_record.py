@@ -19,10 +19,6 @@ TRAIN_COMPETITORS = (
     Boulware,
     Conceder,
     Linear,
-    NaiveTitForTat,
-    StochasticLinear,
-    StochasticConceder,
-    StochasticBoulware,
 )
 
 def inital_session(opponent, model_path="model.pth"):
@@ -81,5 +77,5 @@ def generate_data(num_episodes):
     save_data(state_records, "state_records.pkl")
 
 if __name__ == '__main__':
-    num_episodes = 100
+    num_episodes = 1000
     generate_data(num_episodes)

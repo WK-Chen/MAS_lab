@@ -48,7 +48,7 @@ class PolicyNetContinuous(torch.nn.Module):
         action = torch.tanh(normal_sample)
         log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
         # 得到动作的范围
-        action = action * self.action_bound + 0.5
+        action = action * self.action_bound
         return action, log_prob
 
 
@@ -70,7 +70,7 @@ class SACContinuous:
     def __init__(self, state_dim=9,
                  hidden_dim=256,
                  action_dim=1,
-                 action_bound=0.5,
+                 action_bound=0.1,
                  actor_lr=3e-4,
                  critic_lr=3e-3,
                  alpha_lr=3e-4,

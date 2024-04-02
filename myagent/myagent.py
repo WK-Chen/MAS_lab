@@ -15,11 +15,13 @@ from negmas.sao import ResponseType, SAONegotiator, SAOResponse, SAOState
 from sac import SACContinuous
 import joblib
 from pathlib import Path
+import pathlib
 import torch
 import numpy as np
 from functools import partial
 import pickle
 from reserved_value_predict import prepare_data, train
+from sklearn.tree import DecisionTreeRegressor
 logging.basicConfig(level=logging.INFO)
 
 class MyNegotiator(SAONegotiator):
@@ -38,8 +40,13 @@ class MyNegotiator(SAONegotiator):
         super().__init__(*args, **kwargs)
 
         if self.mode == 'test':
-            X_train, _, Y_train, _ = prepare_data("./state_records.pkl")
-            self.rv_predict = train(X_train, Y_train)
+            self.predict_path = pathlib.Path(__file__).parent.parent / "myagent" / 'predict_rv_model.pkl'
+            if Path.exists(self.predict_path):
+                self.rv_predict = joblib.load(self.predict_path)
+            else:
+                self.record_path = pathlib.Path(__file__).parent.parent / "myagent" / 'state_records.pkl'
+                X_train, _, Y_train, _ = prepare_data(self.record_path)
+                self.rv_predict = train(X_train, Y_train)
         else:
             self.rv_predict = None
 
@@ -236,8 +243,8 @@ class MyNegotiator(SAONegotiator):
 # if you want to do a very small test, use the parameter small=True here. Otherwise, you can use the default parameters.
 if __name__ == "__main__":
     from helpers.runner import run_a_tournament
-    run_a_tournament(partial(MyNegotiator, mode="test", model_path="model_9200.pth"),
+    run_a_tournament(partial(MyNegotiator, mode="test", model_path="model_19000.pth"),
                      n_repetitions=1,
                      n_outcomes=1000,
                      n_scenarios=2,
-                     small=True, debug=True,nologs=True)
+                     small=False, debug=True,nologs=True)

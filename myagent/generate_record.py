@@ -13,12 +13,12 @@ logging.basicConfig(level=logging.INFO)
 
 TRAIN_COMPETITORS = (
     MyNegotiator,
-    RVFitter,
-    NashSeeker,
-    MiCRO,
-    Boulware,
-    Conceder,
-    Linear,
+    # RVFitter,
+    # NashSeeker,
+    # MiCRO,
+    # Boulware,
+    # Conceder,
+    # Linear,
 )
 
 def inital_session(opponent, model_path="model.pth"):
@@ -64,7 +64,7 @@ def generate_data(num_episodes):
     for episode in trange(num_episodes):
         new_opponent = random.choice(TRAIN_COMPETITORS)
 
-        session, pos = inital_session(new_opponent)
+        session, pos = inital_session(new_opponent, './checkpoints/model_19000.pth')
         session.run()
 
         neg = session.get_negotiator(session.negotiator_ids[0]) if pos == [0] else (
@@ -77,5 +77,5 @@ def generate_data(num_episodes):
     save_data(state_records, "state_records.pkl")
 
 if __name__ == '__main__':
-    num_episodes = 1000
+    num_episodes = 300
     generate_data(num_episodes)

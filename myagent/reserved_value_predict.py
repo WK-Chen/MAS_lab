@@ -14,7 +14,7 @@ def main():
 def prepare_data(path):
     with open(path, 'rb') as f:
         data = pickle.load(f)
-    # print(f"Data Length: {len(data)}")
+    print(f"Data Length: {len(data)}")
 
     data = np.array(data)
 
@@ -27,6 +27,7 @@ def train(X_train, Y_train):
     # Create a model and train it
     model = DecisionTreeRegressor()
     model.fit(X_train, Y_train)
+    joblib.dump(model, 'predict_rv_model.pkl')
     return model
 
 def eval(model, X_test, Y_test):

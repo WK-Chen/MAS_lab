@@ -243,7 +243,7 @@ class MyNegotiator(SAONegotiator):
 # if you want to do a very small test, use the parameter small=True here. Otherwise, you can use the default parameters.
 if __name__ == "__main__":
     from helpers.runner import run_a_tournament
-    run_a_tournament(partial(MyNegotiator, mode="test", model_path="model_19000.pth"),
+    run_a_tournament(partial(MyNegotiator, mode="test", model_path="model.pth"),
                      n_repetitions=1,
                      n_outcomes=1000,
                      n_scenarios=2,

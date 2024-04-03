@@ -55,7 +55,7 @@ def inital_session(opponent, SACagent, path="model.pth"):
                     ufun=scenario.ufuns[0])
         if opponent == MyNegotiator:
             session.add(
-                MyNegotiator(name="seller", mode="trn", model_path=path, private_info=private_info[1]),
+                MyNegotiator(name="buyer", mode="trn", model_path=path, private_info=private_info[1]),
                 ufun=scenario.ufuns[1])
         else:
             session.add(opponent(name="buyer", private_info=private_info[1]), ufun=scenario.ufuns[1])
